@@ -1,2 +1,2 @@
 # Discord-Atm
-amati-tiru-modifikas
+amati-tiru-modifikasi
