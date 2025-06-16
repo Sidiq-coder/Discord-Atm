@@ -13,3 +13,151 @@ datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
 }
+
+enum Role {
+  ADMIN
+  USER
+  MEMBER
+  OWNER
+}
+
+enum GroupType {
+  FREE
+  PAID
+}
+
+enum MessageType {
+  TEXT
+  IMAGE
+}
+
+enum StatusType {
+  FAIL
+  SUCCESS
+  PENDING
+}
+
+model roles {
+  id   String @id @db.VarChar
+  role Role
+
+  users        user[]
+  room_members room_member[]
+}
+
+model user {
+  id       String  @id @db.VarChar
+  name     String
+  email    String  @unique
+  password String
+  photo    String
+
+  role_id String
+  role    roles   @relation(fields: [role_id], references: [id])
+
+  rooms_created    rooms[]        @relation("RoomCreator")
+  room_members     room_member[]
+  messages         room_messages[]
+  password_resets  password_reset[]
+  transactionsMade transaction[]  @relation("TransactionUser")
+  transactionsOwned transaction[] @relation("TransactionOwner")
+  payouts          payouts[]
+}
+
+model groups {
+  id        String    @id @db.VarChar
+  room_id String
+  name      String
+  photo     String
+  type      GroupType
+  about     String
+  benefit   String[]
+  price     Int
+  create_at DateTime
+
+  room    rooms    @relation(fields: [room_id], references: [id])
+  assets  group_asset[]
+  transactions transaction[]
+}
+
+model group_asset {
+  id        String @id @db.VarChar
+  group_id  String
+  filename  String
+
+  group groups @relation(fields: [group_id], references: [id])
+}
+
+model rooms {
+  id         String   @id @db.VarChar
+  name       String
+  is_group   Boolean
+  created_at DateTime
+
+  created_by_id String
+  created_by    user     @relation("RoomCreator", fields: [created_by_id], references: [id])
+
+  members  room_member[]
+  messages room_messages[]
+  group    groups[]
+}
+
+model room_member {
+  id        String   @id @db.VarChar
+  room_id   String
+  user_id   String
+  role_id   String
+  joined_at DateTime
+
+  room rooms @relation(fields: [room_id], references: [id])
+  user user  @relation(fields: [user_id], references: [id])
+  role roles @relation(fields: [role_id], references: [id])
+}
+
+model room_messages {
+  id         String   @id @db.VarChar
+  room_id    String
+  sender_id  String
+  content    String
+  type       MessageType
+  created_at DateTime
+
+  room   rooms @relation(fields: [room_id], references: [id])
+  sender user  @relation(fields: [sender_id], references: [id])
+}
+
+model password_reset {
+  id      String @id @db.VarChar
+  user_id String
+  token   String
+
+  user user @relation(fields: [user_id], references: [id])
+}
+
+model transaction {
+  id         String     @id @db.VarChar
+  owner_id   String
+  user_id    String
+  group_id   String
+  price      Int
+  status     StatusType
+  create_at  DateTime
+
+  owner user   @relation("TransactionOwner", fields: [owner_id], references: [id])
+  user  user   @relation("TransactionUser", fields: [user_id], references: [id])
+  group groups @relation(fields: [group_id], references: [id])
+}
+
+model payouts {
+  id                   String     @id @db.VarChar
+  user_id              String
+  amount               Int
+  bank_name            String
+  bank_account_number  String
+  bank_account_name    String
+  status               StatusType
+  proof                String
+  create_at            DateTime
+
+  user user @relation(fields: [user_id], references: [id])
+}
